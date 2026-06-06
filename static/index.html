@@ -392,11 +392,11 @@
 <!-- RECEIVE PANEL -->
 <div class="panel" id="panel-receive">
   <div class="code-inputs" id="codeInputs">
-    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+    <input maxlength="1" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text" />
+    <input maxlength="1" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text" />
+    <input maxlength="1" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text" />
+    <input maxlength="1" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text" />
+    <input maxlength="1" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text" />
   </div>
 
   <div class="file-preview" id="filePreview">
@@ -555,18 +555,27 @@
   const inputs = Array.from(document.querySelectorAll('#codeInputs input'));
   let checkTimeout = null;
 
+  function fillFromString(str) {
+    const chars = str.replace(/\s/g, '').slice(0, 5).split('');
+    chars.forEach((c, j) => {
+      inputs[j].value = c;
+      inputs[j].classList.toggle('filled', !!c);
+    });
+    inputs[Math.min(chars.length, 4)].focus();
+    scheduleCheck();
+  }
+
   inputs.forEach((input, i) => {
     input.addEventListener('input', e => {
       const val = e.target.value;
-      if (val.length > 1 && i === 0) {
-        // Paste of full code into first box
-        val.slice(0, 5).split('').forEach((c, j) => { if (inputs[j]) inputs[j].value = c; });
-        inputs[Math.min(val.length - 1, 4)].focus();
-      } else {
-        input.value = val.slice(-1);
-        if (val && i < 4) inputs[i + 1].focus();
+      // Multi-char means paste bypassed the paste handler (mobile IME etc)
+      if (val.length > 1) {
+        fillFromString(val);
+        return;
       }
-      input.classList.toggle('filled', !!input.value);
+      input.value = val;
+      input.classList.toggle('filled', !!val);
+      if (val && i < 4) inputs[i + 1].focus();
       scheduleCheck();
     });
 
@@ -575,24 +584,18 @@
         inputs[i - 1].value = '';
         inputs[i - 1].classList.remove('filled');
         inputs[i - 1].focus();
+        scheduleCheck();
       }
     });
 
     input.addEventListener('paste', e => {
       e.preventDefault();
       const text = (e.clipboardData || window.clipboardData).getData('text').trim();
-      if (text.length >= 5) {
-        text.slice(0, 5).split('').forEach((c, j) => {
-          inputs[j].value = c;
-          inputs[j].classList.add('filled');
-        });
-        inputs[4].focus();
-        scheduleCheck();
-      }
+      fillFromString(text);
     });
   });
 
-  function getCode() { return inputs.map(i => i.value).join(''); }
+  function getCode() { return inputs.map(i => i.value.slice(0, 1)).join(''); }
 
   function scheduleCheck() {
     clearTimeout(checkTimeout);
