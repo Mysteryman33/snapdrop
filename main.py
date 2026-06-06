@@ -103,8 +103,7 @@ def check(code: str):
     if not entry or time.time() > entry["expires_at"]:
         raise HTTPException(status_code=404, detail="Not found")
     remaining = int(entry["expires_at"] - time.time())
-    size_kb = round(entry["size"] / 1024, 1)
-    return {"filename": entry["filename"], "expires_in": remaining, "size_kb": size_kb}
+    return {"filename": entry["filename"], "expires_in": remaining, "size": entry["size"]}
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
