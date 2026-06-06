@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>SnapDrop</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f11;
+      --surface: #1a1a1f;
+      --border: #2a2a35;
+      --accent: #7c6bff;
+      --accent2: #a78bfa;
+      --text: #f0f0f5;
+      --muted: #888899;
+      --success: #4ade80;
+      --danger: #f87171;
+      --radius: 16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 28px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .panel {
+      width: 100%;
+      max-width: 400px;
+      display: none;
+    }
+    .panel.active { display: flex; flex-direction: column; gap: 16px; }
+
+    /* Upload panel */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface);
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: #1e1b2e;
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+    .drop-zone h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .drop-zone p {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .progress-bar-wrap {
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .code-display {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      display: none;
+    }
+    .code-display .label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .code-display .code {
+      font-size: 3.2rem;
+      font-weight: 900;
+      letter-spacing: 10px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      cursor: pointer;
+      user-select: all;
+    }
+    .code-display .file-info {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    .code-display .timer {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .copy-hint {
+      font-size: 0.75rem;
+      color: var(--accent2);
+      margin-top: 8px;
+      opacity: 0.7;
+    }
+
+    /* Download panel */
+    .code-input-group {
+      display: flex;
+      gap: 10px;
+      flex-direction: column;
+    }
+    .code-inputs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .code-inputs input {
+      width: 52px;
+      height: 64px;
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      caret-color: var(--accent);
+    }
+    .code-inputs input:focus {
+      border-color: var(--accent);
+    }
+    .code-inputs input.filled {
+      border-color: var(--accent2);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #5b50d6);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .file-preview {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: none;
+      align-items: center;
+      gap: 14px;
+    }
+    .file-preview .file-icon { font-size: 2rem; }
+    .file-preview .file-details { flex: 1; min-width: 0; }
+    .file-preview .file-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-preview .file-meta { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+    .status {
+      text-align: center;
+      font-size: 0.85rem;
+      padding: 10px 16px;
+      border-radius: 10px;
+      display: none;
+    }
+    .status.error { background: #2a1a1a; color: var(--danger); border: 1px solid #5a2020; }
+    .status.success { background: #142214; color: var(--success); border: 1px solid #1e4a1e; }
+
+    .new-upload-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: var(--radius);
+      padding: 12px;
+      width: 100%;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .new-upload-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+    @media (max-width: 380px) {
+      .code-inputs input { width: 44px; height: 56px; font-size: 1.3rem; }
+      .drop-zone { padding: 36px 16px; }
+      .code-display .code { font-size: 2.6rem; letter-spacing: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>SnapDrop</h1>
+  <p>Share any file in seconds — no account, no network</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tab-send" onclick="switchTab('send')">Send</button>
+  <button class="tab-btn" id="tab-receive" onclick="switchTab('receive')">Receive</button>
+</div>
+
+<!-- SEND PANEL -->
+<div class="panel active" id="panel-send">
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" />
+    <div class="drop-icon">📤</div>
+    <h2>Tap to choose a file</h2>
+    <p>Or drag &amp; drop — any file type, any size</p>
+  </div>
+
+  <div class="progress-bar-wrap" id="progressWrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div class="status" id="uploadStatus"></div>
+
+  <div class="code-display" id="codeDisplay">
+    <div class="label">Your share code</div>
+    <div class="code" id="codeText" onclick="copyCode()" title="Tap to copy"></div>
+    <div class="file-info" id="codeFileInfo"></div>
+    <div class="timer" id="codeTimer"></div>
+    <div class="copy-hint">Tap code to copy</div>
+  </div>
+
+  <button class="new-upload-btn" id="newUploadBtn" onclick="resetUpload()" style="display:none">
+    + Upload another file
+  </button>
+</div>
+
+<!-- RECEIVE PANEL -->
+<div class="panel" id="panel-receive">
+  <div class="code-input-group">
+    <div class="code-inputs" id="codeInputs">
+      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+    </div>
+  </div>
+
+  <div class="file-preview" id="filePreview">
+    <div class="file-icon" id="previewIcon">📄</div>
+    <div class="file-details">
+      <div class="file-name" id="previewName"></div>
+      <div class="file-meta" id="previewMeta"></div>
+    </div>
+  </div>
+
+  <div class="status" id="receiveStatus"></div>
+
+  <button class="btn btn-primary" id="downloadBtn" onclick="downloadFile()" disabled>
+    Download
+  </button>
+</div>
+
+<script>
+  // ── Tab switching ──────────────────────────────────────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+  }
+
+  // ── Send logic ─────────────────────────────────────────────────
+  let expiryInterval = null;
+  let currentCode = null;
+
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) uploadFile(e.target.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+  });
+
+  async function uploadFile(file) {
+    dropZone.style.display = 'none';
+    showUploadStatus('', '');
+
+    const wrap = document.getElementById('progressWrap');
+    const bar = document.getElementById('progressBar');
+    wrap.style.display = 'block';
+    bar.style.width = '10%';
+
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      // Fake progress feel
+      let prog = 10;
+      const ticker = setInterval(() => {
+        prog = Math.min(prog + Math.random() * 15, 85);
+        bar.style.width = prog + '%';
+      }, 200);
+
+      const res = await fetch('/upload', { method: 'POST', body: form });
+      clearInterval(ticker);
+
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+
+      bar.style.width = '100%';
+      setTimeout(() => { wrap.style.display = 'none'; bar.style.width = '0%'; }, 400);
+
+      currentCode = data.code;
+      showCode(data.code, file.name, file.size, data.expires_in);
+    } catch (err) {
+      wrap.style.display = 'none';
+      dropZone.style.display = '';
+      showUploadStatus('Upload failed. Please try again.', 'error');
+    }
+  }
+
+  function showCode(code, filename, size, expiresIn) {
+    document.getElementById('codeText').textContent = code;
+    document.getElementById('codeFileInfo').textContent =
+      `${filename} · ${formatSize(size)}`;
+
+    const display = document.getElementById('codeDisplay');
+    display.style.display = 'block';
+    document.getElementById('newUploadBtn').style.display = '';
+
+    let remaining = expiresIn;
+    updateTimer(remaining);
+    if (expiryInterval) clearInterval(expiryInterval);
+    expiryInterval = setInterval(() => {
+      remaining--;
+      updateTimer(remaining);
+      if (remaining <= 0) { clearInterval(expiryInterval); resetUpload(); }
+    }, 1000);
+  }
+
+  function updateTimer(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    document.getElementById('codeTimer').textContent =
+      `Expires in ${m}:${String(sec).padStart(2, '0')}`;
+  }
+
+  function copyCode() {
+    if (!currentCode) return;
+    navigator.clipboard.writeText(currentCode).then(() => {
+      const hint = document.querySelector('.copy-hint');
+      hint.textContent = 'Copied!';
+      setTimeout(() => hint.textContent = 'Tap code to copy', 1500);
+    });
+  }
+
+  function resetUpload() {
+    if (expiryInterval) clearInterval(expiryInterval);
+    currentCode = null;
+    document.getElementById('codeDisplay').style.display = 'none';
+    document.getElementById('newUploadBtn').style.display = 'none';
+    document.getElementById('uploadStatus').style.display = 'none';
+    dropZone.style.display = '';
+    fileInput.value = '';
+  }
+
+  function showUploadStatus(msg, type) {
+    const el = document.getElementById('uploadStatus');
+    if (!msg) { el.style.display = 'none'; return; }
+    el.textContent = msg;
+    el.className = 'status ' + type;
+    el.style.display = 'block';
+  }
+
+  // ── Receive logic ──────────────────────────────────────────────
+  const inputs = Array.from(document.querySelectorAll('#codeInputs input'));
+  let checkTimeout = null;
+
+  inputs.forEach((input, i) => {
+    input.addEventListener('input', e => {
+      const val = e.target.value;
+      // Allow paste of full code into first box
+      if (val.length > 1 && i === 0) {
+        const chars = val.slice(0, 5).split('');
+        chars.forEach((c, j) => { if (inputs[j]) inputs[j].value = c; });
+        inputs[Math.min(chars.length, 4)].focus();
+      } else {
+        input.value = val.slice(-1);
+        if (val && i < 4) inputs[i + 1].focus();
+      }
+      input.classList.toggle('filled', !!input.value);
+      scheduleCheck();
+    });
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !input.value && i > 0) {
+        inputs[i - 1].value = '';
+        inputs[i - 1].classList.remove('filled');
+        inputs[i - 1].focus();
+      }
+    });
+
+    input.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').trim();
+      if (text.length >= 5) {
+        text.slice(0, 5).split('').forEach((c, j) => {
+          inputs[j].value = c;
+          inputs[j].classList.add('filled');
+        });
+        inputs[4].focus();
+        scheduleCheck();
+      }
+    });
+  });
+
+  function getCode() {
+    return inputs.map(i => i.value).join('');
+  }
+
+  function scheduleCheck() {
+    clearTimeout(checkTimeout);
+    const code = getCode();
+    if (code.length < 5) {
+      hideFilePreview();
+      setReceiveStatus('', '');
+      document.getElementById('downloadBtn').disabled = true;
+      return;
+    }
+    checkTimeout = setTimeout(() => checkCode(code), 300);
+  }
+
+  async function checkCode(code) {
+    setReceiveStatus('Checking...', '');
+    try {
+      const res = await fetch('/check/' + code);
+      if (!res.ok) {
+        hideFilePreview();
+        setReceiveStatus('Code not found or expired.', 'error');
+        document.getElementById('downloadBtn').disabled = true;
+        return;
+      }
+      const data = await res.json();
+      showFilePreview(data.filename, data.size_kb, data.expires_in);
+      setReceiveStatus('', '');
+      document.getElementById('downloadBtn').disabled = false;
+    } catch {
+      setReceiveStatus('Network error.', 'error');
+    }
+  }
+
+  function showFilePreview(filename, sizeKb, expiresIn) {
+    document.getElementById('previewIcon').textContent = fileEmoji(filename);
+    document.getElementById('previewName').textContent = filename;
+    const m = Math.floor(expiresIn / 60);
+    const s = expiresIn % 60;
+    document.getElementById('previewMeta').textContent =
+      `${sizeKb} KB · expires in ${m}:${String(s).padStart(2, '0')}`;
+    const el = document.getElementById('filePreview');
+    el.style.display = 'flex';
+  }
+
+  function hideFilePreview() {
+    document.getElementById('filePreview').style.display = 'none';
+  }
+
+  function setReceiveStatus(msg, type) {
+    const el = document.getElementById('receiveStatus');
+    if (!msg) { el.style.display = 'none'; return; }
+    el.textContent = msg;
+    el.className = 'status ' + (type || '');
+    el.style.display = 'block';
+  }
+
+  async function downloadFile() {
+    const code = getCode();
+    if (code.length !== 5) return;
+    window.location.href = '/download/' + code;
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function fileEmoji(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    const map = {
+      jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️',
+      mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬',
+      mp3: '🎵', wav: '🎵', flac: '🎵', aac: '🎵',
+      pdf: '📕', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊',
+      zip: '🗜️', tar: '🗜️', gz: '🗜️', rar: '🗜️',
+      py: '🐍', js: '📜', ts: '📜', html: '🌐', css: '🎨',
+      txt: '📄', md: '📄',
+    };
+    return map[ext] || '📦';
+  }
+</script>
+</body>
+</html>
