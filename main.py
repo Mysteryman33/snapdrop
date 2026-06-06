@@ -51,19 +51,28 @@ threading.Thread(target=cleanup_loop, daemon=True).start()
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
     code = generate_code()
-    dest = UPLOAD_DIR / f"{code}_{file.filename}"
-    contents = await file.read()
-    dest.write_bytes(contents)
+    # Sanitize filename to avoid path traversal
+    safe_name = Path(file.filename).name.replace("/", "_").replace("\\", "_")
+    dest = UPLOAD_DIR / f"{code}_{safe_name}"
+    size = 0
+    CHUNK = 1024 * 1024  # 1 MB chunks — never loads whole file into RAM
+    with open(dest, "wb") as f:
+        while True:
+            chunk = await file.read(CHUNK)
+            if not chunk:
+                break
+            f.write(chunk)
+            size += len(chunk)
 
     with store_lock:
         store[code] = {
             "path": str(dest),
-            "filename": file.filename,
+            "filename": safe_name,
             "expires_at": time.time() + EXPIRY_SECONDS,
-            "size": len(contents),
+            "size": size,
         }
 
-    return {"code": code, "filename": file.filename, "expires_in": EXPIRY_SECONDS}
+    return {"code": code, "filename": safe_name, "expires_in": EXPIRY_SECONDS}
 
 
 @app.get("/download/{code}")
@@ -102,4 +111,4 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, timeout_keep_alive=120)

@@ -85,14 +85,14 @@
     }
     .panel.active { display: flex; flex-direction: column; gap: 16px; }
 
-    /* Upload panel */
+    /* ── Drop zone ── */
     .drop-zone {
       border: 2px dashed var(--border);
       border-radius: var(--radius);
       padding: 48px 24px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: border-color 0.2s, background 0.2s;
       background: var(--surface);
       position: relative;
     }
@@ -100,6 +100,7 @@
       border-color: var(--accent);
       background: #1e1b2e;
     }
+    .drop-zone.dragover .upload-icon-svg { transform: translateY(-6px); }
     .drop-zone input[type="file"] {
       position: absolute;
       inset: 0;
@@ -107,10 +108,6 @@
       cursor: pointer;
       width: 100%;
       height: 100%;
-    }
-    .drop-icon {
-      font-size: 3rem;
-      margin-bottom: 12px;
     }
     .drop-zone h2 {
       font-size: 1.05rem;
@@ -122,6 +119,48 @@
       color: var(--muted);
     }
 
+    /* ── Custom upload icon ── */
+    .upload-icon-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .upload-icon-svg {
+      width: 64px;
+      height: 64px;
+      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    /* Arrow bounce */
+    @keyframes arrow-bounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-5px); }
+    }
+    .icon-arrow {
+      animation: arrow-bounce 2s ease-in-out infinite;
+      transform-origin: center;
+    }
+
+    /* Orbit ring pulse */
+    @keyframes ring-pulse {
+      0%, 100% { stroke-opacity: 0.25; r: 28; }
+      50%       { stroke-opacity: 0.6;  r: 30; }
+    }
+    .icon-ring {
+      animation: ring-pulse 2s ease-in-out infinite;
+      transform-origin: 32px 32px;
+    }
+
+    /* Dashes rotate */
+    @keyframes dash-spin {
+      from { stroke-dashoffset: 0; }
+      to   { stroke-dashoffset: -40; }
+    }
+    .icon-dashes {
+      animation: dash-spin 4s linear infinite;
+    }
+
+    /* Progress */
     .progress-bar-wrap {
       height: 6px;
       background: var(--border);
@@ -134,9 +173,16 @@
       background: linear-gradient(90deg, var(--accent), var(--accent2));
       border-radius: 99px;
       width: 0%;
-      transition: width 0.3s;
+      transition: width 0.15s linear;
+    }
+    .progress-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+      display: none;
     }
 
+    /* Code display */
     .code-display {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -182,11 +228,6 @@
     }
 
     /* Download panel */
-    .code-input-group {
-      display: flex;
-      gap: 10px;
-      flex-direction: column;
-    }
     .code-inputs {
       display: flex;
       gap: 8px;
@@ -207,12 +248,8 @@
       transition: border-color 0.15s;
       caret-color: var(--accent);
     }
-    .code-inputs input:focus {
-      border-color: var(--accent);
-    }
-    .code-inputs input.filled {
-      border-color: var(--accent2);
-    }
+    .code-inputs input:focus { border-color: var(--accent); }
+    .code-inputs input.filled { border-color: var(--accent2); }
 
     .btn {
       width: 100%;
@@ -259,7 +296,7 @@
       border-radius: 10px;
       display: none;
     }
-    .status.error { background: #2a1a1a; color: var(--danger); border: 1px solid #5a2020; }
+    .status.error   { background: #2a1a1a; color: var(--danger);  border: 1px solid #5a2020; }
     .status.success { background: #142214; color: var(--success); border: 1px solid #1e4a1e; }
 
     .new-upload-btn {
@@ -299,14 +336,43 @@
 <div class="panel active" id="panel-send">
   <div class="drop-zone" id="dropZone">
     <input type="file" id="fileInput" />
-    <div class="drop-icon">📤</div>
+    <div class="upload-icon-wrap">
+      <!-- Custom SVG upload icon -->
+      <svg class="upload-icon-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer pulsing ring -->
+        <circle class="icon-ring" cx="32" cy="32" r="28" stroke="#7c6bff" stroke-width="1.5"
+          stroke-dasharray="6 4" stroke-linecap="round" class="icon-dashes" />
+        <!-- Glow circle bg -->
+        <circle cx="32" cy="32" r="22" fill="#1e1b2e" />
+        <circle cx="32" cy="32" r="22" fill="url(#iconGrad)" fill-opacity="0.15" />
+        <!-- Arrow group bouncing -->
+        <g class="icon-arrow">
+          <!-- Arrow shaft -->
+          <line x1="32" y1="42" x2="32" y2="24" stroke="url(#iconGrad)" stroke-width="2.5"
+            stroke-linecap="round" />
+          <!-- Arrow head -->
+          <polyline points="24,30 32,22 40,30" stroke="url(#iconGrad)" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        </g>
+        <!-- Base tray line -->
+        <line x1="24" y1="44" x2="40" y2="44" stroke="#a78bfa" stroke-width="2"
+          stroke-linecap="round" opacity="0.5" />
+        <defs>
+          <linearGradient id="iconGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#a78bfa" />
+            <stop offset="1" stop-color="#7c6bff" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
     <h2>Tap to choose a file</h2>
-    <p>Or drag &amp; drop — any file type, any size</p>
+    <p>Or drag &amp; drop — any file type</p>
   </div>
 
   <div class="progress-bar-wrap" id="progressWrap">
     <div class="progress-bar" id="progressBar"></div>
   </div>
+  <div class="progress-label" id="progressLabel"></div>
 
   <div class="status" id="uploadStatus"></div>
 
@@ -325,14 +391,12 @@
 
 <!-- RECEIVE PANEL -->
 <div class="panel" id="panel-receive">
-  <div class="code-input-group">
-    <div class="code-inputs" id="codeInputs">
-      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-      <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
-    </div>
+  <div class="code-inputs" id="codeInputs">
+    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
+    <input maxlength="1" type="text" autocomplete="off" spellcheck="false" />
   </div>
 
   <div class="file-preview" id="filePreview">
@@ -364,56 +428,75 @@
   let currentCode = null;
 
   const fileInput = document.getElementById('fileInput');
-  const dropZone = document.getElementById('dropZone');
+  const dropZone  = document.getElementById('dropZone');
 
   fileInput.addEventListener('change', e => {
     if (e.target.files[0]) uploadFile(e.target.files[0]);
   });
-
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
   dropZone.addEventListener('drop', e => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
     if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
   });
 
-  async function uploadFile(file) {
+  function uploadFile(file) {
     dropZone.style.display = 'none';
     showUploadStatus('', '');
 
-    const wrap = document.getElementById('progressWrap');
-    const bar = document.getElementById('progressBar');
-    wrap.style.display = 'block';
-    bar.style.width = '10%';
+    const wrap  = document.getElementById('progressWrap');
+    const bar   = document.getElementById('progressBar');
+    const label = document.getElementById('progressLabel');
+    wrap.style.display  = 'block';
+    label.style.display = 'block';
+    bar.style.width = '0%';
 
     const form = new FormData();
     form.append('file', file);
 
-    try {
-      // Fake progress feel
-      let prog = 10;
-      const ticker = setInterval(() => {
-        prog = Math.min(prog + Math.random() * 15, 85);
-        bar.style.width = prog + '%';
-      }, 200);
+    // Use XHR so we get real upload progress events
+    const xhr = new XMLHttpRequest();
 
-      const res = await fetch('/upload', { method: 'POST', body: form });
-      clearInterval(ticker);
+    xhr.upload.addEventListener('progress', e => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round((e.loaded / e.total) * 100);
+      bar.style.width = pct + '%';
+      label.textContent = `Uploading… ${pct}% of ${formatSize(file.size)}`;
+    });
 
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
-
+    xhr.addEventListener('load', () => {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        onUploadError();
+        return;
+      }
       bar.style.width = '100%';
-      setTimeout(() => { wrap.style.display = 'none'; bar.style.width = '0%'; }, 400);
+      label.textContent = 'Done!';
+      setTimeout(() => {
+        wrap.style.display  = 'none';
+        label.style.display = 'none';
+        bar.style.width = '0%';
+      }, 400);
 
+      const data = JSON.parse(xhr.responseText);
       currentCode = data.code;
       showCode(data.code, file.name, file.size, data.expires_in);
-    } catch (err) {
-      wrap.style.display = 'none';
-      dropZone.style.display = '';
-      showUploadStatus('Upload failed. Please try again.', 'error');
-    }
+    });
+
+    xhr.addEventListener('error', onUploadError);
+    xhr.addEventListener('timeout', onUploadError);
+
+    // No timeout — let large uploads finish naturally
+    xhr.open('POST', '/upload');
+    xhr.send(form);
+  }
+
+  function onUploadError() {
+    document.getElementById('progressWrap').style.display  = 'none';
+    document.getElementById('progressLabel').style.display = 'none';
+    dropZone.style.display = '';
+    fileInput.value = '';
+    showUploadStatus('Upload failed — please try again.', 'error');
   }
 
   function showCode(code, filename, size, expiresIn) {
@@ -421,8 +504,7 @@
     document.getElementById('codeFileInfo').textContent =
       `${filename} · ${formatSize(size)}`;
 
-    const display = document.getElementById('codeDisplay');
-    display.style.display = 'block';
+    document.getElementById('codeDisplay').style.display = 'block';
     document.getElementById('newUploadBtn').style.display = '';
 
     let remaining = expiresIn;
@@ -436,7 +518,7 @@
   }
 
   function updateTimer(s) {
-    const m = Math.floor(s / 60);
+    const m   = Math.floor(s / 60);
     const sec = s % 60;
     document.getElementById('codeTimer').textContent =
       `Expires in ${m}:${String(sec).padStart(2, '0')}`;
@@ -447,14 +529,14 @@
     navigator.clipboard.writeText(currentCode).then(() => {
       const hint = document.querySelector('.copy-hint');
       hint.textContent = 'Copied!';
-      setTimeout(() => hint.textContent = 'Tap code to copy', 1500);
+      setTimeout(() => { hint.textContent = 'Tap code to copy'; }, 1500);
     });
   }
 
   function resetUpload() {
     if (expiryInterval) clearInterval(expiryInterval);
     currentCode = null;
-    document.getElementById('codeDisplay').style.display = 'none';
+    document.getElementById('codeDisplay').style.display  = 'none';
     document.getElementById('newUploadBtn').style.display = 'none';
     document.getElementById('uploadStatus').style.display = 'none';
     dropZone.style.display = '';
@@ -465,7 +547,7 @@
     const el = document.getElementById('uploadStatus');
     if (!msg) { el.style.display = 'none'; return; }
     el.textContent = msg;
-    el.className = 'status ' + type;
+    el.className   = 'status ' + type;
     el.style.display = 'block';
   }
 
@@ -476,11 +558,10 @@
   inputs.forEach((input, i) => {
     input.addEventListener('input', e => {
       const val = e.target.value;
-      // Allow paste of full code into first box
       if (val.length > 1 && i === 0) {
-        const chars = val.slice(0, 5).split('');
-        chars.forEach((c, j) => { if (inputs[j]) inputs[j].value = c; });
-        inputs[Math.min(chars.length, 4)].focus();
+        // Paste of full code into first box
+        val.slice(0, 5).split('').forEach((c, j) => { if (inputs[j]) inputs[j].value = c; });
+        inputs[Math.min(val.length - 1, 4)].focus();
       } else {
         input.value = val.slice(-1);
         if (val && i < 4) inputs[i + 1].focus();
@@ -511,9 +592,7 @@
     });
   });
 
-  function getCode() {
-    return inputs.map(i => i.value).join('');
-  }
+  function getCode() { return inputs.map(i => i.value).join(''); }
 
   function scheduleCheck() {
     clearTimeout(checkTimeout);
@@ -528,7 +607,7 @@
   }
 
   async function checkCode(code) {
-    setReceiveStatus('Checking...', '');
+    setReceiveStatus('Checking…', '');
     try {
       const res = await fetch('/check/' + code);
       if (!res.ok) {
@@ -542,7 +621,7 @@
       setReceiveStatus('', '');
       document.getElementById('downloadBtn').disabled = false;
     } catch {
-      setReceiveStatus('Network error.', 'error');
+      setReceiveStatus('Network error — try again.', 'error');
     }
   }
 
@@ -553,8 +632,7 @@
     const s = expiresIn % 60;
     document.getElementById('previewMeta').textContent =
       `${sizeKb} KB · expires in ${m}:${String(s).padStart(2, '0')}`;
-    const el = document.getElementById('filePreview');
-    el.style.display = 'flex';
+    document.getElementById('filePreview').style.display = 'flex';
   }
 
   function hideFilePreview() {
@@ -565,11 +643,11 @@
     const el = document.getElementById('receiveStatus');
     if (!msg) { el.style.display = 'none'; return; }
     el.textContent = msg;
-    el.className = 'status ' + (type || '');
+    el.className   = 'status ' + (type || '');
     el.style.display = 'block';
   }
 
-  async function downloadFile() {
+  function downloadFile() {
     const code = getCode();
     if (code.length !== 5) return;
     window.location.href = '/download/' + code;
@@ -577,21 +655,22 @@
 
   // ── Helpers ────────────────────────────────────────────────────
   function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes < 1024)            return bytes + ' B';
+    if (bytes < 1024 * 1024)     return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 ** 3)       return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 ** 3)).toFixed(2) + ' GB';
   }
 
   function fileEmoji(name) {
     const ext = name.split('.').pop().toLowerCase();
     const map = {
-      jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️',
-      mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬',
-      mp3: '🎵', wav: '🎵', flac: '🎵', aac: '🎵',
-      pdf: '📕', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊',
-      zip: '🗜️', tar: '🗜️', gz: '🗜️', rar: '🗜️',
-      py: '🐍', js: '📜', ts: '📜', html: '🌐', css: '🎨',
-      txt: '📄', md: '📄',
+      jpg:'🖼️', jpeg:'🖼️', png:'🖼️', gif:'🖼️', webp:'🖼️', svg:'🖼️', heic:'🖼️',
+      mp4:'🎬', mov:'🎬', avi:'🎬', mkv:'🎬', webm:'🎬',
+      mp3:'🎵', wav:'🎵', flac:'🎵', aac:'🎵', m4a:'🎵',
+      pdf:'📕', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊', ppt:'📊', pptx:'📊',
+      zip:'🗜️', tar:'🗜️', gz:'🗜️', rar:'🗜️', '7z':'🗜️',
+      py:'🐍', js:'📜', ts:'📜', html:'🌐', css:'🎨',
+      txt:'📄', md:'📄',
     };
     return map[ext] || '📦';
   }
